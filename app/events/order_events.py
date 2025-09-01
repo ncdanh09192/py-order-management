@@ -1,5 +1,7 @@
 from app.events.base import Event
 from typing import Dict, Any
+from datetime import datetime
+import json
 
 class OrderCreatedEvent(Event):
     """Event fired when a new order is created"""
@@ -30,10 +32,19 @@ class OrderUpdatedEvent(Event):
         for key in new_data:
             if key in old_data and old_data[key] != new_data[key]:
                 changes[key] = {
-                    "from": old_data[key],
-                    "to": new_data[key]
+                    "from": self._serialize_value(old_data[key]),
+                    "to": self._serialize_value(new_data[key])
                 }
         return changes
+    
+    def _serialize_value(self, value: Any) -> Any:
+        """Convert datetime and other non-JSON serializable values to strings"""
+        if isinstance(value, datetime):
+            return value.isoformat()
+        elif hasattr(value, '__dict__'):  # Handle other complex objects
+            return str(value)
+        else:
+            return value
 
 class OrderDeletedEvent(Event):
     """Event fired when an order is deleted"""

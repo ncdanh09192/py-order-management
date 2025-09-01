@@ -18,7 +18,6 @@ model OrderHeader {
   updatedAt   DateTime    @updatedAt @map("updated_at")
   
   lines       OrderLine[]
-  history     OrderHistory[]
   
   @@map("order_headers")
 }
@@ -43,9 +42,7 @@ model OrderHistory {
   changes     Json?
   performedBy Int?          @map("performed_by")
   createdAt   DateTime      @default(now()) @map("created_at")
-  
-  order       OrderHeader   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  
+    
   @@map("order_history")
 }
 

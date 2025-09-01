@@ -108,19 +108,19 @@ class OrderService:
             # Prepare response data
             response_data = {
                 "id": order_header.id,
-                "customer_id": order_header.customerId,
-                "order_date": order_header.orderDate,
+                "customerId": order_header.customerId,
+                "orderDate": order_header.orderDate.isoformat() if order_header.orderDate else None,
                 "status": order_header.status,
-                "total_amount": order_header.totalAmount,
-                "created_at": order_header.createdAt,
-                "updated_at": order_header.updatedAt,
+                "totalAmount": float(order_header.totalAmount) if order_header.totalAmount else 0.0,
+                "createdAt": order_header.createdAt.isoformat() if order_header.createdAt else None,
+                "updatedAt": order_header.updatedAt.isoformat() if order_header.updatedAt else None,
                 "lines": [
                     {
                         "id": line.id,
-                        "product_id": line.productId,
+                        "productId": line.productId,
                         "quantity": line.quantity,
-                        "unit_price": line.unitPrice,
-                        "created_at": line.createdAt
+                        "unitPrice": float(line.unitPrice) if line.unitPrice else 0.0,
+                        "createdAt": line.createdAt.isoformat() if line.createdAt else None
                     }
                     for line in order_header.lines
                 ]
@@ -205,18 +205,18 @@ class OrderService:
             raise
     
     async def delete_order(self, order_id: int, customer_id: int) -> bool:
-        """Delete order"""
+        """Delete an order and its lines"""
         try:
             db = await get_database()
             
-            # Get order data before deletion for event
+            # Get order data first
             order_data = await db.orderheader.find_first(
                 where={"id": order_id, "customerId": customer_id},
                 include={"lines": True}
             )
             
             if not order_data:
-                return False
+                raise ValueError(f"Order {order_id} not found")
             
             # Store order data for event
             order_data_dict = {
@@ -239,12 +239,12 @@ class OrderService:
                 ]
             }
             
-            # Delete order (cascade will delete lines)
-            await db.orderheader.delete(where={"id": order_id})
-            
-            # Publish event
+            # Publish event FIRST (before deleting)
             event = OrderDeletedEvent(order_id, order_data_dict)
             await self.event_bus.publish(event)
+            
+            # Delete order AFTER publishing event (cascade will delete lines)
+            await db.orderheader.delete(where={"id": order_id})
             
             logger.info(f"Order {order_id} deleted successfully")
             return True

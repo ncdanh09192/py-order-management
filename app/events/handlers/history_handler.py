@@ -1,3 +1,4 @@
+import json
 from app.events.base import EventHandler, Event
 from app.core.database import get_database
 import logging
@@ -38,8 +39,7 @@ class HistoryHandler(EventHandler):
             data={
                 "orderId": event.data["id"],
                 "action": "CREATED",
-                "changes": None,
-                "performedBy": event.data["customerId"]
+                "performedBy": event.data.get("customerId")
             }
         )
         
@@ -49,13 +49,17 @@ class HistoryHandler(EventHandler):
         """Create history entry for order update"""
         db = await get_database()
         
+        # Get changes from event data
         changes = event.data.get("changes", {})
+        # Serialize changes to JSON string
+        changes_json = json.dumps(changes) if changes else None
+        
         await db.orderhistory.create(
             data={
                 "orderId": event.data["order_id"],
                 "action": "UPDATED",
-                "changes": changes,
-                "performedBy": event.data["new_data"]["customerId"]
+                "changes": changes_json,
+                "performedBy": event.data.get("new_data", {}).get("customerId")
             }
         )
         
@@ -64,13 +68,29 @@ class HistoryHandler(EventHandler):
     async def _handle_order_deleted(self, event: Event) -> None:
         """Create history entry for order deletion"""
         db = await get_database()
-        
+
+        # Get order data from event data
+        order_data = event.data.get("order_data", {})
+
+        # Prepare changes data
+        changes_data = {
+            "deleted_at": "now",  # Có thể thay bằng datetime.now().isoformat() nếu muốn
+            "order_info": {
+                "id": order_data.get("id"),
+                "customerId": order_data.get("customerId"),
+                "status": order_data.get("status")
+            }
+        }
+
+        # Serialize changes to JSON string
+        changes_json = json.dumps(changes_data) if changes_data else None
+
         await db.orderhistory.create(
             data={
                 "orderId": event.data["order_id"],
                 "action": "DELETED",
-                "changes": {"deleted_data": event.data["order_data"]},
-                "performedBy": event.data["order_data"]["customerId"]
+                "changes": changes_json,
+                "performedBy": event.data.get("order_data", {}).get("customerId")
             }
         )
         
