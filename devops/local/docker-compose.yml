@@ -7,16 +7,8 @@ services:
       dockerfile: devops/local/Dockerfile
     ports:
       - "8000:8000"
-    environment:
-      - DATABASE_URL=postgresql://user:password@postgres:5432/orderdb
-      - REDIS_URL=redis://redis:6379
-      - SECRET_KEY=your-secret-key-here-change-in-production
-      - REFRESH_SECRET_KEY=your-refresh-secret-key-here-change-in-production
-      - ACCESS_TOKEN_EXPIRE_MINUTES=30
-      - REFRESH_TOKEN_EXPIRE_DAYS=7
-      - EVENT_SYSTEM=local
-      - LOG_LEVEL=INFO
-      - DEBUG=true
+    env_file:
+      - .env
     depends_on:
       - postgres
       - redis

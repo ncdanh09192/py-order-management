@@ -40,6 +40,15 @@ fi
 
 print_status "Docker environment check passed"
 
+# Check if .env file exists, if not create from .env.example
+if [ ! -f .env ]; then
+    print_status "Creating .env file from .env.example..."
+    cp .env.example .env
+    print_success ".env file created successfully"
+else
+    print_status ".env file already exists, skipping creation"
+fi
+
 # Stop any existing containers
 print_status "Stopping existing containers..."
 docker-compose down --remove-orphans
@@ -67,14 +76,14 @@ print_success "Redis is ready"
 
 # Wait for app to be ready
 print_status "Waiting for application to be ready..."
-while ! curl -f http://localhost:8000/api/v1/health > /dev/null 2>&1; do
+while ! curl -f http://localhost:8000/api/v1/health/ > /dev/null 2>&1; do
     sleep 3
 done
 print_success "Application is ready"
 
 # Check application health
 print_status "Checking application health..."
-HEALTH_RESPONSE=$(curl -s http://localhost:8000/api/v1/health)
+HEALTH_RESPONSE=$(curl -s http://localhost:8000/api/v1/health/)
 
 if echo "$HEALTH_RESPONSE" | grep -q '"status":"healthy"'; then
     print_success "All services are healthy!"
