@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-py"
+  enable_experimental_decimal = true
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model OrderHeader {
+  id          Int         @id @default(autoincrement())
+  customerId  Int         @map("customer_id")
+  orderDate   DateTime    @map("order_date")
+  status      OrderStatus
+  totalAmount Decimal     @map("total_amount") @db.Decimal(10, 2)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  
+  lines       OrderLine[]
+  history     OrderHistory[]
+  
+  @@map("order_headers")
+}
+
+model OrderLine {
+  id         Int         @id @default(autoincrement())
+  orderId    Int         @map("order_id")
+  productId  Int         @map("product_id")
+  quantity   Int
+  unitPrice  Decimal     @map("unit_price") @db.Decimal(10, 2)
+  createdAt  DateTime    @default(now()) @map("created_at")
+  
+  order      OrderHeader @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  @@map("order_lines")
+}
+
+model OrderHistory {
+  id          Int           @id @default(autoincrement())
+  orderId     Int           @map("order_id")
+  action      OrderAction
+  changes     Json?
+  performedBy Int?          @map("performed_by")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  
+  order       OrderHeader   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  @@map("order_history")
+}
+
+enum OrderStatus {
+  PENDING
+  SHIPPED
+  CANCELLED
+}
+
+enum OrderAction {
+  CREATED
+  UPDATED
+  DELETED
+}

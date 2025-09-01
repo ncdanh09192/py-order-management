@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  app:
+    build: 
+      context: ../..
+      dockerfile: devops/local/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://user:password@postgres:5432/orderdb
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY=your-secret-key-here-change-in-production
+      - REFRESH_SECRET_KEY=your-refresh-secret-key-here-change-in-production
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - REFRESH_TOKEN_EXPIRE_DAYS=7
+      - EVENT_SYSTEM=local
+      - LOG_LEVEL=INFO
+      - DEBUG=true
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ../../app:/app/app
+      - ../../prisma:/app/prisma
+    command: >
+      sh -c "
+        echo 'Waiting for PostgreSQL...' &&
+        while ! nc -z postgres 5432; do
+          sleep 1
+        done &&
+        echo 'PostgreSQL is ready' &&
+        echo 'Waiting for Redis...' &&
+        while ! nc -z redis 6379; do
+          sleep 1
+        done &&
+        echo 'Redis is ready' &&
+        echo 'Running Prisma migrations...' &&
+        prisma migrate deploy &&
+        echo 'Generating Prisma client...' &&
+        prisma generate &&
+        echo 'Starting FastAPI application...' &&
+        uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      "
+    networks:
+      - order-network
+
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=orderdb
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - order-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d orderdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - order-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  order-network:
+    driver: bridge
