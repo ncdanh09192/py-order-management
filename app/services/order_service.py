@@ -302,8 +302,8 @@ class OrderService:
                 total=total,
                 page=page,
                 size=size,
-                has_next=page * size < total,
-                has_prev=page > 1
+                hasNext=page * size < total,
+                hasPrev=page > 1
             )
             
         except Exception as e:

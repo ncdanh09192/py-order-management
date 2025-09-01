@@ -64,10 +64,10 @@ class AuthService:
             logger.info(f"Token refreshed for customer {customer_id}")
             
             return TokenResponse(
-                access_token=new_access_token,
-                refresh_token=new_refresh_token,
-                token_type="bearer",
-                expires_in=1800
+                accessToken=new_access_token,
+                refreshToken=new_refresh_token,
+                tokenType="bearer",
+                expiresIn=1800
             )
             
         except Exception as e:

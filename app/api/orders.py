@@ -75,6 +75,10 @@ async def get_order(
         # Convert order dict to OrderResponse
         return OrderResponse(**order)
         
+    except ValueError as e:
+        if "not found" in str(e).lower():
+            raise HTTPException(status_code=404, detail="Order not found")
+        raise HTTPException(status_code=400, detail=str(e))
     except HTTPException:
         raise
     except Exception as e:
@@ -125,6 +129,10 @@ async def delete_order(
         
         return {"message": "Order deleted successfully"}
         
+    except ValueError as e:
+        if "not found" in str(e).lower():
+            raise HTTPException(status_code=404, detail="Order not found")
+        raise HTTPException(status_code=400, detail=str(e))
     except HTTPException:
         raise
     except Exception as e:
