@@ -223,12 +223,99 @@ The system uses an event-driven architecture where order operations trigger even
 
 ### Unit Tests
 
+The project includes comprehensive unit tests covering all major components:
+
+#### Test Structure
+```
+app/tests/
+├── conftest.py              # Test configuration and fixtures
+├── test_api_endpoints.py    # API endpoint tests
+├── test_auth_service.py     # Authentication service tests
+├── test_event_bus.py        # Event bus functionality tests
+├── test_health.py           # Health check tests
+├── test_order_service.py    # Order service business logic tests
+└── test_security.py         # Security and JWT tests
+```
+
+#### Running Tests
+
 ```bash
-# Run tests
+# Run all tests
 pytest app/tests/
 
-# Run with coverage
+# Run with verbose output
+pytest -v app/tests/
+
+# Run with coverage report
 pytest --cov=app app/tests/
+
+# Run specific test file
+pytest app/tests/test_api_endpoints.py
+
+# Run specific test function
+pytest app/tests/test_api_endpoints.py::test_create_order
+
+# Run tests with parallel execution
+pytest -n auto app/tests/
+
+# Generate HTML coverage report
+pytest --cov=app --cov-report=html app/tests/
+```
+
+#### Test Coverage
+
+The test suite covers:
+- **API Endpoints**: All CRUD operations for orders
+- **Authentication**: JWT token generation, validation, and refresh
+- **Services**: Business logic in order and auth services
+- **Event System**: Event publishing, handling, and bus functionality
+- **Security**: Password hashing, token validation
+- **Health Checks**: Database and Redis connectivity
+
+#### Test Configuration
+
+Tests use `pytest` with the following features:
+- **Fixtures**: Reusable test data and setup
+- **Mocking**: External dependencies isolation
+- **Database**: Test database with automatic cleanup
+- **Redis**: Test Redis instance for cache testing
+- **Async Support**: Full async/await test coverage
+
+#### Example Test
+
+```python
+def test_create_order_success(client, auth_headers):
+    """Test successful order creation"""
+    order_data = {
+        "customer_id": 123,
+        "order_date": "2025-01-20",
+        "status": "PENDING",
+        "lines": [
+            {
+                "product_id": 1001,
+                "quantity": 2,
+                "unit_price": 25.50
+            }
+        ]
+    }
+    
+    response = client.post("/api/v1/orders", 
+                          json=order_data, 
+                          headers=auth_headers)
+    
+    assert response.status_code == 201
+    assert response.json()["customer_id"] == 123
+    assert response.json()["status"] == "PENDING"
+```
+
+### Integration Tests
+
+```bash
+# Run integration tests (requires running services)
+pytest app/tests/ --integration
+
+# Test with real database
+pytest app/tests/ --db=real
 ```
 
 ### API Testing
@@ -241,6 +328,34 @@ curl http://localhost:8000/api/v1/health
 
 # Test readiness
 curl http://localhost:8000/api/v1/health/ready
+
+# Test authentication
+curl -X POST "http://localhost:8000/api/v1/auth/login-test" \
+  -H "Content-Type: application/json" \
+  -d '{"customer_id": 123}'
+```
+
+### Performance Testing
+
+```bash
+# Run load tests
+pytest app/tests/ --performance
+
+# Run stress tests
+pytest app/tests/ --stress
+```
+
+### Test Data Management
+
+```bash
+# Reset test database
+pytest --reset-db
+
+# Seed test data
+pytest --seed-data
+
+# Clean test cache
+pytest --clear-cache
 ```
 
 ## 🐳 Docker Commands
