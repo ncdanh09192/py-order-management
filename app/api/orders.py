@@ -56,7 +56,8 @@ async def create_order(
 @router.get("/{order_id}", response_model=OrderResponse)
 async def get_order(
     order_id: int,
-    order: dict = Depends(check_order_ownership)
+    customer_id: int = Depends(get_current_customer_id),
+    _: bool = Depends(check_order_ownership)
 ):
     """
     Get order by ID.
@@ -65,9 +66,17 @@ async def get_order(
     Returns cached data if available, otherwise fetches from database.
     """
     try:
+        # Get order data from service layer
+        order = await order_service.get_order_by_id(order_id, customer_id)
+        
+        if not order:
+            raise HTTPException(status_code=404, detail="Order not found")
+        
         # Convert order dict to OrderResponse
         return OrderResponse(**order)
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error getting order {order_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")

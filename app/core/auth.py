@@ -15,8 +15,8 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     payload = verify_access_token(token)
     return payload
 
-async def check_order_ownership(order_id: int, current_user: dict = Depends(get_current_user)) -> dict:
-    """Verify ownership and return full order data (camelCase) including lines."""
+async def check_order_ownership(order_id: int, current_user: dict = Depends(get_current_user)) -> bool:
+    """Verify ownership of an order. Returns True if authorized, raises HTTPException if not."""
     try:
         db = await get_database()
         
@@ -38,31 +38,7 @@ async def check_order_ownership(order_id: int, current_user: dict = Depends(get_
                 detail="Not authorized to access this order"
             )
 
-        # Load full order with lines and map to camelCase dict expected by DTO
-        order_with_lines = await db.orderheader.find_first(
-            where={"id": order_id, "customerId": current_user["customer_id"]},
-            include={"lines": True}
-        )
-
-        return {
-            "id": order_with_lines.id,
-            "customerId": order_with_lines.customerId,
-            "orderDate": order_with_lines.orderDate,
-            "status": order_with_lines.status,
-            "totalAmount": order_with_lines.totalAmount,
-            "createdAt": order_with_lines.createdAt,
-            "updatedAt": order_with_lines.updatedAt,
-            "lines": [
-                {
-                    "id": line.id,
-                    "productId": line.productId,
-                    "quantity": line.quantity,
-                    "unitPrice": line.unitPrice,
-                    "createdAt": line.createdAt,
-                }
-                for line in order_with_lines.lines
-            ],
-        }
+        return True
         
     except HTTPException:
         raise
